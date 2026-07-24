@@ -7,7 +7,6 @@ import {
   FiSave, FiX, FiChevronRight, FiShield, FiGlobe,
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
-import { useAuthHook } from '../hooks/useAuth';
 import { useWishlist } from '../context/WishlistContext';
 import PageHeader from '../components/common/PageHeader';
 import toast from 'react-hot-toast';
@@ -15,8 +14,7 @@ import { useLanguage } from '../context/LanguageContext';
 
 const Profile = () => {
   const { t } = useLanguage();
-  const { user, profile, logout } = useAuth();
-  const { updateProfile, uploadAvatar, updatePassword, loading, error, clearError } = useAuthHook();
+  const { user, profile, logout, fetchProfile, updateProfile, uploadAvatar, updatePassword, loading, error, clearError } = useAuth();
   const { wishlist } = useWishlist();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -80,6 +78,7 @@ const Profile = () => {
     setIsUploading(true);
     try {
       await uploadAvatar(file);
+      await fetchProfile(user.id);
       toast.success('Profile picture updated!');
     } catch (err) {
       toast.error(err.message || 'Failed to upload avatar.');
@@ -91,7 +90,13 @@ const Profile = () => {
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     try {
-      await updateProfile(formData);
+      await updateProfile({
+        full_name: formData.fullName,
+        phone: formData.phone,
+        country: formData.country,
+        city: formData.city,
+        bio: formData.bio,
+      });
       setIsEditing(false);
       toast.success('Profile updated successfully!');
     } catch (err) {

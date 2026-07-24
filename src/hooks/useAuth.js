@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '../services/supabase';
+import { supabase, uploadFile, getFileUrl } from '../services/supabase';
 
 export const useAuthHook = () => {
   const [loading, setLoading] = useState(false);
@@ -146,18 +146,10 @@ export const useAuthHook = () => {
 
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/avatar.${fileExt}`;
+      const bucket = 'images';
 
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-
-      const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      await uploadFile(bucket, file, fileName, { upsert: true });
+      const avatarUrl = getFileUrl(bucket, fileName) + '?t=' + Date.now();
 
       const { error: updateError } = await supabase
         .from('profiles')

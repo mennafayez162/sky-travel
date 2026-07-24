@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../services/supabase';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { supabase, uploadFile, getFileUrl } from '../services/supabase';
 
 const AuthContext = createContext(null);
 
@@ -7,6 +7,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const clearError = useCallback(() => setError(null), []);
 
   useEffect(() => {
     const getUser = async () => {
@@ -16,8 +19,8 @@ export const AuthProvider = ({ children }) => {
           setUser(session.user);
           await fetchProfile(session.user.id);
         }
-      } catch (error) {
-        console.error('Error getting session:', error);
+      } catch (err) {
+        console.error('Error getting session:', err);
       } finally {
         setLoading(false);
       }
@@ -42,13 +45,13 @@ export const AuthProvider = ({ children }) => {
 
   const fetchProfile = async (userId) => {
     try {
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (error && error.code === 'PGRST116') {
+      if (fetchError && fetchError.code === 'PGRST116') {
         const { data: { session } } = await supabase.auth.getSession();
         const meta = session?.user?.user_metadata || {};
         const { data: newProfile, error: insertError } = await supabase
@@ -67,33 +70,33 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
       setProfile(data);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
+    } catch (err) {
+      console.error('Error fetching profile:', err);
     }
   };
 
   const login = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error: loginError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    if (error) throw error;
+    if (loginError) throw loginError;
     setUser(data.user);
     await fetchProfile(data.user.id);
     return data;
   };
 
   const register = async (email, password, fullName) => {
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error: regError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: fullName },
       },
     });
-    if (error) throw error;
+    if (regError) throw regError;
     if (data.user) {
       await supabase.from('profiles').upsert({
         id: data.user.id,
@@ -107,8 +110,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    const { error: logoutError } = await supabase.auth.signOut();
+    if (logoutError) throw logoutError;
     setUser(null);
     setProfile(null);
   };
@@ -116,37 +119,41 @@ export const AuthProvider = ({ children }) => {
   const updateProfile = async (updates) => {
     if (!user) return;
     try {
-      const { data, error } = await supabase
+      const { data, error: updateError } = await supabase
         .from('profiles')
         .update(updates)
         .eq('id', user.id)
         .select()
         .single();
 
-      if (error) throw error;
+      if (updateError) throw updateError;
       setProfile(data);
+
+      if (updates.full_name) {
+        await supabase.auth.updateUser({ data: { full_name: updates.full_name } });
+      }
+
       return data;
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      throw error;
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      throw err;
     }
   };
 
   const updatePassword = async (newPassword) => {
     if (!user) throw new Error('Not logged in');
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) throw error;
+    const { error: pwError } = await supabase.auth.updateUser({ password: newPassword });
+    if (pwError) throw pwError;
   };
 
   const uploadAvatar = async (file) => {
     if (!user) throw new Error('Not logged in');
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}/avatar.${fileExt}`;
-    const { error: uploadError } = await supabase.storage
-      .from('images')
-      .upload(fileName, file, { upsert: true });
-    if (uploadError) throw uploadError;
-    const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(fileName);
+    const bucket = 'images';
+
+    await uploadFile(bucket, file, fileName, { upsert: true });
+    const publicUrl = getFileUrl(bucket, fileName);
     const { error: updateError } = await supabase.auth.updateUser({ data: { avatar_url: publicUrl } });
     if (updateError) throw updateError;
     await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
@@ -159,6 +166,8 @@ export const AuthProvider = ({ children }) => {
     user,
     profile,
     loading,
+    error,
+    clearError,
     isAdmin,
     login,
     register,

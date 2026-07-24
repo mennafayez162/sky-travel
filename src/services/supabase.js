@@ -51,30 +51,43 @@ export const getSession = async () => {
   return session;
 };
 
-export const uploadFile = async (bucket, file, path) => {
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .upload(path, file, {
-      cacheControl: '3600',
-      upsert: false,
-    });
-  if (error) throw error;
-  return data;
+const authHeaders = () => ({
+  apikey: supabaseAnonKey,
+  Authorization: `Bearer ${supabaseAnonKey}`,
+});
+
+export const uploadFile = async (bucket, file, path, opts = {}) => {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token || supabaseAnonKey;
+  const res = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${path}`, {
+    method: 'POST',
+    headers: {
+      apikey: supabaseAnonKey,
+      Authorization: `Bearer ${token}`,
+      'Content-Type': file.type || 'application/octet-stream',
+      'x-upsert': opts.upsert ? 'true' : 'false',
+    },
+    body: file,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(err.message || 'Upload failed');
+  }
+  return { path };
 };
 
 export const getFileUrl = (bucket, path) => {
-  const { data } = supabase.storage
-    .from(bucket)
-    .getPublicUrl(path);
-  return data.publicUrl;
+  return `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`;
 };
 
 export const deleteFile = async (bucket, paths) => {
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .remove(paths);
-  if (error) throw error;
-  return data;
+  for (const p of paths) {
+    await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${p}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+  }
+  return { paths };
 };
 
 export const supabaseQuery = async (table, options = {}) => {
