@@ -132,6 +132,27 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updatePassword = async (newPassword) => {
+    if (!user) throw new Error('Not logged in');
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+  };
+
+  const uploadAvatar = async (file) => {
+    if (!user) throw new Error('Not logged in');
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}/avatar.${fileExt}`;
+    const { error: uploadError } = await supabase.storage
+      .from('images')
+      .upload(fileName, file, { upsert: true });
+    if (uploadError) throw uploadError;
+    const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(fileName);
+    const { error: updateError } = await supabase.auth.updateUser({ data: { avatar_url: publicUrl } });
+    if (updateError) throw updateError;
+    await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
+    setProfile(prev => prev ? { ...prev, avatar_url: publicUrl } : prev);
+  };
+
   const isAdmin = profile?.role === 'admin';
 
   const value = {
@@ -143,6 +164,8 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
+    updatePassword,
+    uploadAvatar,
     fetchProfile,
   };
 
