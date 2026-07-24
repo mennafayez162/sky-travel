@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaWhatsapp } from 'react-icons/fa';
-import { supabase } from '../services/supabase';
+import { supabase } from '../../services/supabase';
 
 const WhatsAppButton = () => {
   const [phone, setPhone] = useState('');
