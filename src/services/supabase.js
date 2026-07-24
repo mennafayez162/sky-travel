@@ -57,13 +57,10 @@ const authHeaders = () => ({
 });
 
 export const uploadFile = async (bucket, file, path, opts = {}) => {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token || supabaseAnonKey;
   const res = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${path}`, {
     method: 'POST',
     headers: {
-      apikey: supabaseAnonKey,
-      Authorization: `Bearer ${token}`,
+      ...authHeaders(),
       'Content-Type': file.type || 'application/octet-stream',
       'x-upsert': opts.upsert ? 'true' : 'false',
     },

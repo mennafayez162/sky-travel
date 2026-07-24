@@ -154,8 +154,9 @@ export const AuthProvider = ({ children }) => {
 
     await uploadFile(bucket, file, fileName, { upsert: true });
     const publicUrl = getFileUrl(bucket, fileName);
-    const { error: updateError } = await supabase.auth.updateUser({ data: { avatar_url: publicUrl } });
-    if (updateError) throw updateError;
+    try {
+      await supabase.auth.updateUser({ data: { avatar_url: publicUrl } });
+    } catch {}
     await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
     setProfile(prev => prev ? { ...prev, avatar_url: publicUrl } : prev);
   };
