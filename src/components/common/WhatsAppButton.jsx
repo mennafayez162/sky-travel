@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaWhatsapp } from 'react-icons/fa';
-import { supabase } from '../../services/supabase';
-import { useLanguage } from '../../context/LanguageContext';
+import { supabase } from '../services/supabase';
 
 const WhatsAppButton = () => {
-  const { t } = useLanguage();
   const [phone, setPhone] = useState('');
 
   useEffect(() => {
@@ -13,7 +11,10 @@ const WhatsAppButton = () => {
       try {
         const { data } = await supabase.from('settings').select('whatsapp').limit(1).single();
         if (data?.whatsapp) {
-          setPhone(data.whatsapp.replace(/[^0-9+]/g, ''));
+          const cleaned = data.whatsapp.replace(/[^0-9]/g, '');
+          if (cleaned.length >= 8) {
+            setPhone(cleaned);
+          }
         }
       } catch (err) {
         console.error('WhatsApp fetch error:', err);
@@ -22,12 +23,11 @@ const WhatsAppButton = () => {
     fetchPhone();
   }, []);
 
-  const displayPhone = phone || '201000000000';
-  const message = encodeURIComponent(t('whatsapp.message'));
+  if (!phone) return null;
 
   return (
     <motion.a
-      href={`https://wa.me/${displayPhone}?text=${message}`}
+      href={`https://wa.me/${phone}?text=Hello%2C%20I%27m%20interested%20in%20your%20travel%20services`}
       target="_blank"
       rel="noopener noreferrer"
       initial={{ scale: 0 }}

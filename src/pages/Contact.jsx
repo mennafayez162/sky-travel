@@ -48,7 +48,7 @@ const Contact = () => {
   const phone = settings?.phone || '';
   const email = settings?.email || '';
   const whatsapp = settings?.whatsapp || '';
-  const address = settings?.address || t('contact.address');
+  const address = settings?.address || '';
 
   return (
     <>
@@ -62,7 +62,7 @@ const Contact = () => {
                 { icon: FiMapPin, label: t('contact.addressLabel'), value: address },
                 phone && { icon: FiPhone, label: t('contact.phoneLabel'), value: phone, href: `tel:${phone.replace(/\s/g, '')}` },
                 email && { icon: FiMail, label: t('contact.emailLabel'), value: email, href: `mailto:${email}` },
-                whatsapp && { icon: FaWhatsapp, label: t('contact.whatsappLabel'), value: whatsapp, href: `https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}` },
+                whatsapp && whatsapp.replace(/[^0-9]/g, '').length >= 8 && { icon: FaWhatsapp, label: t('contact.whatsappLabel'), value: whatsapp, href: `https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}` },
               ].filter(Boolean).map((item, i) => (
                 <div
                   key={i}
@@ -118,14 +118,6 @@ const Contact = () => {
                 </form>
               </div>
             </div>
-          </div>
-
-          <div className="mt-12 glass-card overflow-hidden rounded-2xl h-80">
-            <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3153.019562406506!2d-122.41941568468169!3d37.77492977975971!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8085809c6c8f4459%3A0xb10ed6d9b5050fa5!2sSan+Francisco%2C+CA!5e0!3m2!1sen!2sus!4v1625000000000!5m2!1sen!2sus"
-              width="100%" height="100%" style={{ border: 0, filter: 'invert(90%) hue-rotate(180deg) brightness(0.8)' }}
-              allowFullScreen="" loading="lazy" referrerPolicy="no-referrer-when-downgrade" title={t('contact.mapTitle')}
-            />
           </div>
         </div>
       </section>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiMail, FiPhone, FiMapPin, FiArrowRight } from 'react-icons/fi';
-import { FaFacebookF, FaTwitter, FaInstagram, FaYoutube, FaWhatsapp } from 'react-icons/fa';
+import { FaFacebookF, FaInstagram, FaWhatsapp } from 'react-icons/fa';
 import { useLanguage } from '../../context/LanguageContext';
 import { supabase } from '../../services/supabase';
 
@@ -48,9 +48,7 @@ const Footer = () => {
 
   const socialLinks = [
     { icon: FaFacebookF, url: settings?.facebook, label: 'Facebook' },
-    { icon: FaTwitter, url: settings?.twitter, label: 'Twitter' },
     { icon: FaInstagram, url: settings?.instagram, label: 'Instagram' },
-    { icon: FaYoutube, url: settings?.youtube, label: 'YouTube' },
   ].filter((s) => s.url);
 
   const copyrightText = isRTL
@@ -130,7 +128,7 @@ const Footer = () => {
                   {settings.address}
                 </div>
               )}
-              {settings?.whatsapp && (
+              {settings?.whatsapp && settings.whatsapp.replace(/[^0-9]/g, '').length >= 8 && (
                 <a
                   href={`https://wa.me/${settings.whatsapp.replace(/[^0-9]/g, '')}`}
                   target="_blank"
