@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiSearch, FiEye, FiCheck, FiX } from 'react-icons/fi';
+import { FiSearch, FiEye, FiCheck, FiX, FiTrash2 } from 'react-icons/fi';
 import { supabase } from '../../services/supabase';
 import Pagination from '../../components/common/Pagination';
 import { usePagination } from '../../hooks/usePagination';
@@ -10,7 +10,7 @@ import { useLanguage } from '../../context/LanguageContext';
 const PAGE_SIZE = 10;
 
 const AdminBookings = () => {
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -52,6 +52,18 @@ const AdminBookings = () => {
       fetchBookings();
     } catch (err) {
       toast.error('Failed to update');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm(isRTL ? 'هل أنت متأكد من الحذف؟' : 'Are you sure you want to delete?')) return;
+    try {
+      const { error } = await supabase.from('bookings').delete().eq('id', id);
+      if (error) throw error;
+      toast.success(isRTL ? 'تم الحذف' : 'Deleted');
+      fetchBookings();
+    } catch (err) {
+      toast.error('Failed to delete');
     }
   };
 
@@ -107,6 +119,9 @@ const AdminBookings = () => {
                 {b.status === 'confirmed' && (
                   <button onClick={() => updateStatus(b.id, 'completed')} className="w-full py-2 text-xs font-medium rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">Complete</button>
                 )}
+                <button onClick={() => handleDelete(b.id)} className="w-full py-2 text-xs font-medium rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center gap-1">
+                  <FiTrash2 className="w-3 h-3" /> {isRTL ? 'حذف' : 'Delete'}
+                </button>
               </div>
             ))}
           </div>
@@ -145,6 +160,7 @@ const AdminBookings = () => {
                         {b.status === 'confirmed' && (
                           <button onClick={() => updateStatus(b.id, 'completed')} className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg" title="Complete"><FiCheck className="w-4 h-4" /></button>
                         )}
+                        <button onClick={() => handleDelete(b.id)} className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg" title="Delete"><FiTrash2 className="w-4 h-4" /></button>
                       </td>
                     </tr>
                   ))}
